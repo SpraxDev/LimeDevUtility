@@ -209,7 +209,7 @@ public class Config {
                             EntryValidator validator = cfgEntry.getEntryValidator();
 
                             if (validator != null && !validator.isValid(value)) {
-                                LimeDevUtility.LOGGER.warning("Invalid value(=" + value +
+                                LimeDevUtility.LOGGER.warning(() -> "Invalid value(=" + value +
                                         ") inside " + this.file.getName() + " for '" + cfgEntry.getKey() +
                                         "' (default value: '" + cfgEntry.getDefaultValue() + "')");
                             }
@@ -404,6 +404,7 @@ public class Config {
         return yaml;
     }
 
+    @SuppressWarnings("SameParameterValue")
     private static String repeatString(String s, int count) {
         if (count < 0) throw new IllegalArgumentException();
         if (count == 0 || s.isEmpty()) return "";
