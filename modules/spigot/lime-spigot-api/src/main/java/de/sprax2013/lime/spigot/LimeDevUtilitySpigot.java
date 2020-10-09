@@ -1,6 +1,6 @@
 package de.sprax2013.lime.spigot;
 
-import de.sprax2013.lime.configuration.LimeDevUtility;
+import de.sprax2013.lime.LimeDevUtility;
 import de.sprax2013.lime.spigot.bstats.MetricsLite;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -8,10 +8,16 @@ import org.bukkit.plugin.java.JavaPlugin;
 public class LimeDevUtilitySpigot {
     private static boolean initialized = false;
 
+    private LimeDevUtilitySpigot() {
+        throw new IllegalStateException("Utility class");
+    }
+
     public static void init(JavaPlugin plugin) {
         if (initialized) return;
 
         initialized = true;
+
+        LimeDevUtility.LOGGER.setParent(plugin.getLogger());
 
         try {
             // TODO: Add Custom ServerVersion-Pie that shows NMS-Versions when clicked

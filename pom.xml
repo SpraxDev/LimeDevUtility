@@ -29,7 +29,7 @@
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <!-- Used for static code analysis on https://sonarcloud.io/dashboard?id=SpraxDev_BetterChairs -->
+        <!-- Used for static code analysis on https://sonarcloud.io/dashboard?id=SpraxDev_LimeDevUtility -->
         <sonar.projectKey>SpraxDev_LimeDevUtility</sonar.projectKey>
         <sonar.organization>sprax2013</sonar.organization>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
@@ -38,9 +38,14 @@
 
     <distributionManagement>
         <repository>
-            <id>GitHub-SpraxDev</id>
-            <url>https://maven.pkg.github.com/SpraxDev/LimeDevUtility</url>
+            <id>sprax-repo</id>
+            <url>https://repo.sprax2013.de/repository/maven-releases/</url>
         </repository>
+
+        <snapshotRepository>
+            <id>sprax-repo</id>
+            <url>https://repo.sprax2013.de/repository/maven-snapshots/</url>
+        </snapshotRepository>
     </distributionManagement>
 
     <repositories>

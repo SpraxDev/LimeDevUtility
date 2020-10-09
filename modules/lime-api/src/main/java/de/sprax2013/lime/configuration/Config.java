@@ -1,5 +1,7 @@
 package de.sprax2013.lime.configuration;
 
+import de.sprax2013.lime.LimeDevUtility;
+import de.sprax2013.lime.configuration.validation.EntryValidator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.yaml.snakeyaml.DumperOptions;
@@ -23,6 +25,8 @@ import java.util.Objects;
 
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public class Config {
+    private static final String ERR_NO_FILE = "You have to set a file for the configuration";
+
     private static Yaml yaml;
 
     private final Map<@NotNull String, @NotNull ConfigEntry> entries = new LinkedHashMap<>(),
@@ -70,7 +74,7 @@ public class Config {
         String comment = this.commentProvider != null ? this.commentProvider.getComment() : null;
 
         if (comment != null && !comment.isEmpty()) {
-            return "# " + comment.replaceAll("\n", "\n# ") + "\n\n";
+            return "# " + comment.replace("\n", "\n# ") + "\n\n";
         }
 
         return null;
@@ -163,14 +167,14 @@ public class Config {
             loadWithException();
             return true;
         } catch (IOException ex) {
-            ex.printStackTrace();
+            LimeDevUtility.LOGGER.throwing(this.getClass().getName(), "load", ex);
         }
 
         return false;
     }
 
     public void loadWithException() throws IOException {
-        if (this.file == null) throw new FileNotFoundException("You have to set a file for the configuration");
+        if (this.file == null) throw new FileNotFoundException(ERR_NO_FILE);
 
         reset();
 
@@ -202,6 +206,14 @@ public class Config {
                         Object value = ((Map<?, ?>) obj).get(nodeTree[nodeTree.length - 1]);
 
                         if (value != null) {
+                            EntryValidator validator = cfgEntry.getEntryValidator();
+
+                            if (validator != null && !validator.isValid(value)) {
+                                LimeDevUtility.LOGGER.warning(() -> "Invalid value(=" + value +
+                                        ") inside " + this.file.getName() + " for '" + cfgEntry.getKey() +
+                                        "' (default value: '" + cfgEntry.getDefaultValue() + "')");
+                            }
+
                             cfgEntry.setValue(value);
                         }
                     }
@@ -217,14 +229,14 @@ public class Config {
             saveWithException();
             return true;
         } catch (IOException ex) {
-            ex.printStackTrace();
+            LimeDevUtility.LOGGER.throwing(this.getClass().getName(), "save", ex);
         }
 
         return false;
     }
 
     public void saveWithException() throws IOException {
-        if (this.file == null) throw new FileNotFoundException("You have to set a file for the configuration");
+        if (this.file == null) throw new FileNotFoundException(ERR_NO_FILE);
 
         // In case #toString() throws an exception,
         // the file's content is not deleted
@@ -236,7 +248,7 @@ public class Config {
     }
 
     public void backupFile() throws IOException {
-        if (this.file == null) throw new FileNotFoundException("You have to set a file for the configuration");
+        if (this.file == null) throw new FileNotFoundException(ERR_NO_FILE);
         if (!this.file.exists()) throw new FileNotFoundException("File '" + this.file.getAbsolutePath() +
                 "' does not exist");
 
@@ -392,6 +404,7 @@ public class Config {
         return yaml;
     }
 
+    @SuppressWarnings("SameParameterValue")
     private static String repeatString(String s, int count) {
         if (count < 0) throw new IllegalArgumentException();
         if (count == 0 || s.isEmpty()) return "";
