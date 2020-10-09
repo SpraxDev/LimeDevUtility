@@ -1,5 +1,6 @@
 package de.sprax2013.lime.configuration;
 
+import de.sprax2013.lime.configuration.validation.EntryValidator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.yaml.snakeyaml.DumperOptions;
@@ -202,6 +203,14 @@ public class Config {
                         Object value = ((Map<?, ?>) obj).get(nodeTree[nodeTree.length - 1]);
 
                         if (value != null) {
+                            EntryValidator validator = cfgEntry.getEntryValidator();
+
+                            if (validator != null && !validator.isValid(value)) {
+                                LimeDevUtility.LOGGER.warning("Invalid value(=" + value +
+                                        ") inside " + this.file.getName() + " for '" + cfgEntry.getKey() +
+                                        "' (default value: '" + cfgEntry.getDefaultValue() + "')");
+                            }
+
                             cfgEntry.setValue(value);
                         }
                     }

@@ -13,6 +13,8 @@ public class LimeDevUtilitySpigot {
 
         initialized = true;
 
+        LimeDevUtility.LOGGER.setParent(plugin.getLogger());
+
         try {
             // TODO: Add Custom ServerVersion-Pie that shows NMS-Versions when clicked
             new MetricsLite(plugin);
