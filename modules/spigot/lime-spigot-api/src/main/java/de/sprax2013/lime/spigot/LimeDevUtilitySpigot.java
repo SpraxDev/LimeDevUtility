@@ -1,6 +1,6 @@
 package de.sprax2013.lime.spigot;
 
-import de.sprax2013.lime.configuration.LimeDevUtility;
+import de.sprax2013.lime.LimeDevUtility;
 import de.sprax2013.lime.spigot.bstats.MetricsLite;
 import org.bukkit.plugin.java.JavaPlugin;
 

@@ -3,7 +3,7 @@ package de.sprax2013.lime.spigot.bstats;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import de.sprax2013.lime.configuration.LimeDevUtility;
+import de.sprax2013.lime.LimeDevUtility;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;

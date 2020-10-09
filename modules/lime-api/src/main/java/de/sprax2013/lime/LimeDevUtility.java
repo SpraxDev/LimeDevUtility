@@ -1,4 +1,4 @@
-package de.sprax2013.lime.configuration;
+package de.sprax2013.lime;
 
 import java.util.logging.Logger;
 
