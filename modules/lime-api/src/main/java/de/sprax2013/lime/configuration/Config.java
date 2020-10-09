@@ -15,7 +15,10 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.CopyOption;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -23,6 +26,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * This class provides an easy way to create YAML files with and high abstraction layer.<br>
+ * A {@link Config} consists of {@link ConfigEntry}s with an unique identifier (=key).
+ * <p>
+ * The special thing about this class is, that you can have comments on *all* nodes (although that's against the spec)
+ *
+ * @see #saveWithException()
+ * @see #loadWithException()
+ */
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public class Config {
     private static final String ERR_NO_FILE = "You have to set a file for the configuration";
@@ -37,39 +49,112 @@ public class Config {
     private @Nullable File file;
     private @Nullable ConfigCommentProvider commentProvider;
 
+    /**
+     * @see #Config(File)
+     * @see #Config(File, String)
+     * @see #Config(File, ConfigCommentProvider)
+     */
     public Config() {
         this(null);
     }
 
+    /**
+     * @param file The file used for loading and saving the {@link Config}
+     *
+     * @see #Config()
+     * @see #Config(File, String)
+     * @see #Config(File, ConfigCommentProvider)
+     */
     public Config(@Nullable File file) {
         this(file, (ConfigCommentProvider) null);
     }
 
+    /**
+     * @param file    The file used for loading and saving the {@link Config}
+     * @param comment The comment to use as the file header, or {@code null}
+     *
+     * @see #Config()
+     * @see #Config(File)
+     * @see #Config(File, ConfigCommentProvider)
+     */
     public Config(@Nullable File file, @Nullable String comment) {
         this(file, () -> comment);
     }
 
+    /**
+     * @param file            The file used for loading and saving the {@link Config}
+     * @param commentProvider The {@link ConfigCommentProvider} to use for the file header, or {@code null}
+     *
+     * @see #Config()
+     * @see #Config(File)
+     * @see #Config(File, String)
+     */
     public Config(@Nullable File file, @Nullable ConfigCommentProvider commentProvider) {
         this.file = Objects.requireNonNull(file);
         this.commentProvider = commentProvider;
     }
 
+    /**
+     * @return The assigned file or {@code null}
+     *
+     * @see #setFile(File)
+     * @see #Config(File)
+     */
     public @Nullable File getFile() {
         return this.file;
     }
 
+    /**
+     * Sets the file used for loading and saving the {@link Config}<br>
+     *
+     * @param file The file to use
+     *
+     * @see #getFile()
+     * @see #loadWithException()
+     * @see #saveWithException()
+     */
     public void setFile(@Nullable File file) {
         this.file = file;
     }
 
-    public void setCommentProvider(@Nullable ConfigCommentProvider commentProvider) {
+    /**
+     * You can provide a {@link ConfigCommentProvider} that will be placed at the top of the file as a header.
+     *
+     * @param commentProvider The {@link ConfigCommentProvider} to use for the file header, or {@code null}
+     *
+     * @return The same {@link Config} for chaining
+     *
+     * @see ConfigCommentProvider
+     * @see #getCommentProvider()
+     */
+    public Config setCommentProvider(@Nullable ConfigCommentProvider commentProvider) {
         this.commentProvider = commentProvider;
+
+        return this;
     }
 
+    /**
+     * You can provide a {@link ConfigCommentProvider} that will be placed at the top of the file as a header.
+     *
+     * @return The {@link ConfigCommentProvider} assigned, or {@code null}
+     *
+     * @see ConfigCommentProvider
+     * @see #setCommentProvider(ConfigCommentProvider)
+     */
     public @Nullable ConfigCommentProvider getCommentProvider() {
         return this.commentProvider;
     }
 
+    /**
+     * This method adds the {@code #} to the beginning of the lines, to tell the YAML parser to ignore these lines<br>
+     * This method might apply more complex structures according to the defined {@link CommentStyle}.
+     *
+     * @return Formatted comment {@link String}, or {@code null}
+     *
+     * @see CommentStyle
+     * @see #setCommentProvider(ConfigCommentProvider)
+     * @see #getCommentProvider()
+     */
     public @Nullable String getFormattedComment() {
         String comment = this.commentProvider != null ? this.commentProvider.getComment() : null;
 
@@ -80,33 +165,100 @@ public class Config {
         return null;
     }
 
-    public @NotNull Config withEntry(@NotNull String key, @NotNull Object defaultValue) {
+    /**
+     * Does the same as {@link #createEntry(String, Object)} but returning {@link Config}
+     * for chaining instead of the created {@link ConfigEntry}.
+     *
+     * @param key          An unique identifier within the {@link Config}
+     * @param defaultValue The default value for this entry
+     *
+     * @return The same {@link Config} for chaining
+     *
+     * @see ConfigEntry#getKey()
+     */
+    public @NotNull Config withEntry(@NotNull String key, @Nullable Object defaultValue) {
         createEntry(key, defaultValue);
 
         return this;
     }
 
-    public @NotNull Config withEntry(@NotNull String key, @NotNull Object defaultValue, @Nullable String comment) {
+    /**
+     * Does the same as {@link #createEntry(String, Object, String)} but returning {@link Config}
+     * for chaining instead of the created {@link ConfigEntry}.
+     *
+     * @param key          An unique identifier within the {@link Config}
+     * @param defaultValue The default value for this entry
+     * @param comment      The comment to use for this {@code key}, or {@code null}
+     *
+     * @return The same {@link Config} for chaining
+     *
+     * @see ConfigEntry#getKey()
+     */
+    public @NotNull Config withEntry(@NotNull String key, @Nullable Object defaultValue, @Nullable String comment) {
         createEntry(key, defaultValue, comment);
 
         return this;
     }
 
-    public @NotNull Config withEntry(@NotNull String key, @NotNull Object defaultValue,
+    /**
+     * Does the same as {@link #createEntry(String, Object, ConfigCommentProvider)} but returning {@link Config}
+     * for chaining instead of the created {@link ConfigEntry}.
+     *
+     * @param key             An unique identifier within the {@link Config}
+     * @param defaultValue    The default value for this entry
+     * @param commentProvider A {@link ConfigCommentProvider} that generates a comment or null
+     *
+     * @return The same {@link Config} for chaining
+     *
+     * @see ConfigEntry#getKey()
+     * @see ConfigCommentProvider
+     */
+    public @NotNull Config withEntry(@NotNull String key, @Nullable Object defaultValue,
                                      @Nullable ConfigCommentProvider commentProvider) {
         createEntry(key, defaultValue, commentProvider);
 
         return this;
     }
 
+    /**
+     * @param key          An unique identifier within the {@link Config}
+     * @param defaultValue The default value for this entry
+     *
+     * @return The created {@link ConfigEntry}
+     *
+     * @see ConfigEntry#getKey()
+     * @see #createEntry(String, Object, String)
+     * @see #createEntry(String, Object, ConfigCommentProvider)
+     */
     public @NotNull ConfigEntry createEntry(@NotNull String key, @Nullable Object defaultValue) {
         return createEntry(key, defaultValue, (ConfigCommentProvider) null);
     }
 
+    /**
+     * @param key          An unique identifier within the {@link Config}
+     * @param defaultValue The default value for this entry
+     * @param comment      The comment to use for this {@code key}, or {@code null}
+     *
+     * @return The created {@link ConfigEntry}
+     *
+     * @see ConfigEntry#getKey()
+     * @see #createEntry(String, Object)
+     * @see #createEntry(String, Object, ConfigCommentProvider)
+     */
     public @NotNull ConfigEntry createEntry(@NotNull String key, @Nullable Object defaultValue, @Nullable String comment) {
         return createEntry(key, defaultValue, comment != null ? () -> comment : null);
     }
 
+    /**
+     * @param key             An unique identifier within the {@link Config}
+     * @param defaultValue    The default value for this entry
+     * @param commentProvider A {@link ConfigCommentProvider} that generates a comment or null
+     *
+     * @return The created {@link ConfigEntry}
+     *
+     * @see ConfigEntry#getKey()
+     * @see ConfigCommentProvider
+     */
     public @NotNull ConfigEntry createEntry(@NotNull String key, @Nullable Object defaultValue,
                                             @Nullable ConfigCommentProvider commentProvider) {
         if (entries.containsKey(key)) {
@@ -119,22 +271,80 @@ public class Config {
         return cfgEntry;
     }
 
+    /**
+     * Does the same as {@link #addCommentEntry(String, String)} but returning {@link Config}
+     * for chaining instead of the created {@link ConfigEntry}.
+     *
+     * @param key     An unique identifier within the {@link Config}
+     * @param comment The comment to use for this {@code key}
+     *
+     * @return The same {@link Config} for chaining
+     *
+     * @see ConfigEntry#getKey()
+     * @see #withCommentEntry(String, ConfigCommentProvider)
+     * @see #addCommentEntry(String, String)
+     * @see #addCommentEntry(String, ConfigCommentProvider)
+     */
     public @NotNull Config withCommentEntry(@NotNull String key, @NotNull String comment) {
         addCommentEntry(key, comment);
 
         return this;
     }
 
+    /**
+     * Does the same as {@link #addCommentEntry(String, ConfigCommentProvider)} but returning {@link Config}
+     * for chaining instead of the created {@link ConfigEntry}.
+     *
+     * @param key             An unique identifier within the {@link Config}
+     * @param commentProvider A {@link ConfigCommentProvider} that generates a comment
+     *
+     * @return The same {@link Config} for chaining
+     *
+     * @see ConfigEntry#getKey()
+     * @see #withCommentEntry(String, String)
+     * @see #addCommentEntry(String, String)
+     * @see #addCommentEntry(String, ConfigCommentProvider)
+     */
     public @NotNull Config withCommentEntry(@NotNull String key, @NotNull ConfigCommentProvider commentProvider) {
         addCommentEntry(key, commentProvider);
 
         return this;
     }
 
+    /**
+     * Creates an {@link ConfigEntry} solely for the purpose of the comment.<br>
+     * With this, you can create comments that are in the middle of the given {@code key}-path.<br>
+     * <p>
+     * e.g. you have the keys {@code "Root.Profile.Username"} and {@code "Root.Profile.Age"}.<br>
+     * You don't want do add comments to {@code "Username"} and {@code "Age"},
+     * but instead above {@code "Profile"}. That's what this method is for.
+     *
+     * @param key     An unique identifier within the {@link Config}
+     * @param comment The comment to use for this {@code key}
+     *
+     * @return The created {@link ConfigEntry}
+     *
+     * @see ConfigEntry#getKey()
+     */
     public @NotNull ConfigEntry addCommentEntry(@NotNull String key, @NotNull String comment) {
         return addCommentEntry(key, () -> comment);
     }
 
+    /**
+     * Creates an {@link ConfigEntry} solely for the purpose of the comment.<br>
+     * With this, you can create comments that are in the middle of the given {@code key}-path.<br>
+     * <p>
+     * e.g. you have the keys {@code "Root.Profile.Username"} and {@code "Root.Profile.Age"}.<br>
+     * You don't want do add comments to {@code "Username"} and {@code "Age"},
+     * but instead above {@code "Profile"}. That's what this method is for.
+     *
+     * @param key             An unique identifier within the {@link Config}
+     * @param commentProvider A {@link ConfigCommentProvider} that generates a comment
+     *
+     * @return The created {@link ConfigEntry}
+     *
+     * @see ConfigEntry#getKey()
+     */
     public @NotNull ConfigEntry addCommentEntry(@NotNull String key, @NotNull ConfigCommentProvider commentProvider) {
         if (commentEntries.containsKey(key)) {
             throw new IllegalArgumentException("CommentEntry with the key '" + key + "' already exists on this config");
@@ -146,22 +356,62 @@ public class Config {
         return cfgEntry;
     }
 
+    /**
+     * @param key An unique identifier within the {@link Config}
+     *
+     * @return The {@link ConfigEntry} that has been found or {@code null}
+     *
+     * @see ConfigEntry#getKey()
+     */
     public @Nullable ConfigEntry getEntry(@NotNull String key) {
         return entries.get(key);
     }
 
+    /**
+     * @param key An unique identifier within the {@link Config}
+     *
+     * @return The {@link ConfigEntry} that has been found or {@code null}
+     *
+     * @see ConfigEntry#getKey()
+     */
     public @Nullable ConfigEntry getCommentEntry(@NotNull String key) {
         return commentEntries.get(key);
     }
 
+    /**
+     * Tries deleting a specific {@link ConfigEntry}.
+     *
+     * @param key An unique identifier within the {@link Config}
+     *
+     * @return true, if the key was found and removed, false otherwise
+     *
+     * @see #removeCommentEntry(String)
+     */
     public boolean removeEntry(@NotNull String key) {
         return entries.remove(key) != null;
     }
 
+    /**
+     * Tries deleting a specific comment {@link ConfigEntry}.
+     *
+     * @param key An unique identifier within the {@link Config}
+     *
+     * @return true, if the key was found and removed, false otherwise
+     *
+     * @see #removeEntry(String)
+     */
     public boolean removeCommentEntry(@NotNull String key) {
         return commentEntries.remove(key) != null;
     }
 
+    /**
+     * Calls {@link #loadWithException()} but returns a {@code boolean}
+     * and prints any errors into the console
+     *
+     * @return True, if the file has been loaded successfully, false otherwise
+     *
+     * @see #loadWithException()
+     */
     public boolean load() {
         try {
             loadWithException();
@@ -173,6 +423,18 @@ public class Config {
         return false;
     }
 
+    /**
+     * Calls {@link #reset()} and starts parsing the file using SneakYaml<br>
+     * It requires the file to be in {@link org.yaml.snakeyaml.DumperOptions.FlowStyle#BLOCK}<br>
+     * <p>
+     * If a {@link ConfigEntry} has an {@link EntryValidator} assigned, it is called and might cause
+     * printing a warning to the console<br>
+     * <p>
+     * If everything succeeds, all the {@link ConfigListener#onLoad()}s are called
+     *
+     * @throws IOException If {@link #getFile()} {@code == null} or thrown by {@link FileReader}
+     * @see ConfigListener
+     */
     public void loadWithException() throws IOException {
         if (this.file == null) throw new FileNotFoundException(ERR_NO_FILE);
 
@@ -224,6 +486,14 @@ public class Config {
         cfgListeners.forEach(ConfigListener::onLoad);
     }
 
+    /**
+     * Calls {@link #saveWithException()} but returns a {@code boolean}
+     * and prints any errors into the console
+     *
+     * @return True, if the file has been saved successfully, false otherwise
+     *
+     * @see #saveWithException()
+     */
     public boolean save() {
         try {
             saveWithException();
@@ -235,6 +505,12 @@ public class Config {
         return false;
     }
 
+    /**
+     * Calls {@link #toString()} and writes it into the file at {@link #getFile()}
+     *
+     * @throws FileNotFoundException If {@link #getFile()} {@code == null}
+     * @throws IOException           Thrown by {@link FileWriter#append(CharSequence)}
+     */
     public void saveWithException() throws IOException {
         if (this.file == null) throw new FileNotFoundException(ERR_NO_FILE);
 
@@ -247,16 +523,33 @@ public class Config {
         }
     }
 
+    /**
+     * Creates a copy of the configs {@link File}
+     * with the name {@code "backup-${FileName}-}{@link System#currentTimeMillis()}{@code ${FileExtension}"}
+     *
+     * @throws FileNotFoundException If {@link #getFile()} {@code == null} or the file does not exist
+     * @throws IOException           Thrown by {@link Files#copy(Path, Path, CopyOption...)}
+     */
     public void backupFile() throws IOException {
         if (this.file == null) throw new FileNotFoundException(ERR_NO_FILE);
         if (!this.file.exists()) throw new FileNotFoundException("File '" + this.file.getAbsolutePath() +
                 "' does not exist");
 
+        // TODO: Use "backup-" + getBaseName() + "-" + System.currMillis() + getFileExtension()
         Files.copy(this.file.toPath(), new File(this.file.getParentFile(),
-                this.file.getName() + "-" + System.currentTimeMillis() + ".backup").toPath());  // TODO: Use "backup-" + getBaseName() + "-" + System.currMillis() + getFileExtension()
+                this.file.getName() + "-" + System.currentTimeMillis() + ".backup").toPath(), StandardCopyOption.COPY_ATTRIBUTES);
     }
 
-    public Config addListener(@NotNull ConfigListener listener) {
+    /**
+     * Registers a {@link ConfigListener} that can be called by {@link Config}
+     *
+     * @param listener The listener to register
+     *
+     * @return The same {@link Config} for chaining
+     *
+     * @see ConfigListener
+     */
+    public @NotNull Config addListener(@NotNull ConfigListener listener) {
         if (!cfgListeners.contains(listener)) {
             cfgListeners.add(listener);
         }
@@ -264,13 +557,23 @@ public class Config {
         return this;
     }
 
-    public Config clearListeners() {
+    /**
+     * Removes all registered listeners
+     *
+     * @return The same {@link Config} for chaining
+     */
+    public @NotNull Config clearListeners() {
         cfgListeners.clear();
 
         return this;
     }
 
-    public Config reset() {
+    /**
+     * Sets all {@link ConfigEntry} values to {@link ConfigEntry#getDefaultValue()}
+     *
+     * @return The same {@link Config} for chaining
+     */
+    public @NotNull Config reset() {
         for (ConfigEntry cfgEntry : entries.values()) {
             cfgEntry.setValue(cfgEntry.getDefaultValue());
         }
@@ -278,9 +581,19 @@ public class Config {
         return this;
     }
 
+    /**
+     * All {@link ConfigEntry}s are iterated and a {@link LinkedHashMap} is populated to build a tree-like
+     * structure that can be fed into SnakeYaml. If {@link ConfigEntry#getValue()} {@code == null}, it is skipped<br>
+     * <p>
+     * As soon as the YAML string has been created, the comments are injected using {@link #injectComment(String, String, String)}.
+     *
+     * @return A YAML formatted string with all the {@link ConfigEntry}s and comments, if any
+     *
+     * @throws IllegalStateException If a {@link ConfigEntry} is conflicting with another one (same {@code key}?)
+     */
     @SuppressWarnings("unchecked")
     @Override
-    public String toString() {
+    public @NotNull String toString() {
         /* Construct a Node-Tree to generate the YAML from */
         Map<String, Object> dataRoot = new LinkedHashMap<>();
 
@@ -371,7 +684,7 @@ public class Config {
      *
      * @return A modified version of the given {@code yaml} string containing the comment
      */
-    private String injectComment(String yaml, String key, String comment) {
+    private @NotNull String injectComment(String yaml, String key, String comment) {
         String[] nodes = key.split("\\.");
 
         int index = -1;
@@ -389,7 +702,14 @@ public class Config {
         return yaml.substring(0, index) + ("\n" + comment).replace("\n", "\n" + repeatString("  ", nodes.length - 1)) + "\n" + yaml.substring(index);
     }
 
-    private static Yaml getSnakeYaml() {
+    /**
+     * This instance disallows duplicate keys,
+     * wraps Exceptions into {@link org.yaml.snakeyaml.error.YAMLException}s
+     * and it's output is set to {@link org.yaml.snakeyaml.DumperOptions.FlowStyle#BLOCK}
+     *
+     * @return The SnakeYaml instance that should be used for parsing and writing YAML
+     */
+    private static @NotNull Yaml getSnakeYaml() {
         if (yaml == null) {
             LoaderOptions yamlOptions = new LoaderOptions();
             yamlOptions.setAllowDuplicateKeys(false);
@@ -404,16 +724,27 @@ public class Config {
         return yaml;
     }
 
+    /**
+     * Very similar to {@link String#repeat(int)} from Java 11.<br>
+     * It takes the {@link String} {@code str} and repeats it {@code count} times.
+     *
+     * @param str   The {@link String} that should be repeated
+     * @param count How often the given {@link String} should be repeated
+     *
+     * @return The resulting {@link String}
+     *
+     * @throws IllegalArgumentException If {@code count < 0}
+     */
     @SuppressWarnings("SameParameterValue")
-    private static String repeatString(String s, int count) {
+    private static @NotNull String repeatString(String str, int count) {
         if (count < 0) throw new IllegalArgumentException();
-        if (count == 0 || s.isEmpty()) return "";
-        if (count == 1) return s;
+        if (count == 0 || str.isEmpty()) return "";
+        if (count == 1) return str;
 
-        StringBuilder result = new StringBuilder(s.length() * count);
+        StringBuilder result = new StringBuilder(str.length() * count);
 
         for (int i = 0; i < count; ++i) {
-            result.append(s);
+            result.append(str);
         }
 
         return result.toString();
