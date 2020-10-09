@@ -4,6 +4,7 @@ public class StringEntryValidator implements EntryValidator {
     private static final StringEntryValidator instance = new StringEntryValidator();
 
     private StringEntryValidator() {
+        throw new IllegalStateException("Utility class");
     }
 
     @Override

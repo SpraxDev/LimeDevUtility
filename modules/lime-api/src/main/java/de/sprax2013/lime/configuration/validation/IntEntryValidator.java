@@ -4,6 +4,7 @@ public class IntEntryValidator implements EntryValidator {
     private static final IntEntryValidator instance = new IntEntryValidator();
 
     private IntEntryValidator() {
+        throw new IllegalStateException("Utility class");
     }
 
     @Override

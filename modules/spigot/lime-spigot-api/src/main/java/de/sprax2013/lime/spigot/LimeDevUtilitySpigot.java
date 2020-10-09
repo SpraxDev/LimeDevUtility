@@ -8,6 +8,10 @@ import org.bukkit.plugin.java.JavaPlugin;
 public class LimeDevUtilitySpigot {
     private static boolean initialized = false;
 
+    private LimeDevUtilitySpigot() {
+        throw new IllegalStateException("Utility class");
+    }
+
     public static void init(JavaPlugin plugin) {
         if (initialized) return;
 
