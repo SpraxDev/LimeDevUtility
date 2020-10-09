@@ -1,10 +1,10 @@
 package de.sprax2013.lime.configuration.validation;
 
+@SuppressWarnings("unused")
 public class StringEntryValidator implements EntryValidator {
-    private static final StringEntryValidator instance = new StringEntryValidator();
+    private static StringEntryValidator instance;
 
     private StringEntryValidator() {
-        throw new IllegalStateException("Utility class");
     }
 
     @Override
@@ -13,6 +13,10 @@ public class StringEntryValidator implements EntryValidator {
     }
 
     public static StringEntryValidator get() {
+        if (instance == null) {
+            instance = new StringEntryValidator();
+        }
+
         return instance;
     }
 }

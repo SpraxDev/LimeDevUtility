@@ -1,10 +1,12 @@
 package de.sprax2013.lime.configuration.validation;
 
+import org.jetbrains.annotations.NotNull;
+
+@SuppressWarnings("unused")
 public class IntEntryValidator implements EntryValidator {
-    private static final IntEntryValidator instance = new IntEntryValidator();
+    private static IntEntryValidator instance;
 
     private IntEntryValidator() {
-        throw new IllegalStateException("Utility class");
     }
 
     @Override
@@ -21,7 +23,11 @@ public class IntEntryValidator implements EntryValidator {
         }
     }
 
-    public static IntEntryValidator get() {
+    public static @NotNull IntEntryValidator get() {
+        if (instance == null) {
+            instance = new IntEntryValidator();
+        }
+
         return instance;
     }
 }
