@@ -1,0 +1,110 @@
+name: Build with Maven
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  #  check-version:
+  #    runs-on: ubuntu-latest
+  #
+  #    steps:
+  #      - uses: actions/checkout@v2
+  #      - name: Extract version from pom.xml and compare to docs/version.txt
+  #        id: version_diff  # Outputs 'same' or 'diff'
+  #        run: mkdir -p docs && echo $(grep --max-count=1 '<version>' pom.xml | awk -F '>' '{ print $2 }' | awk -F '<' '{ print $1 }') >> docs/version_new.txt && diff -q --ignore-space-change --strip-trailing-cr --ignore-blank-lines docs/version.txt docs/version_new.txt 2>&1 && echo "##[set-output name=result;]same" || echo "##[set-output name=result;]diff"
+  #
+  #      - name: Check if extracted version matches docs/version.txt
+  #        if: ${{ steps.version_diff.outputs.result == 'diff' }}
+  #        uses: unsplash/comment-on-pr@master
+  #        with:
+  #          msg: "Versions in `pom.xml` and `docs/version.txt` are not the same! Please use the same version in both files."
+  #          check_for_duplicate_msg: true
+  #        env:
+  #          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #
+  #      - name: Check if version from docs/version.txt is inside CHANGELOG.md
+  #        id: inside_changelog  # Outputs 'yes' or 'no'
+  #        run: verTxt=$(cat docs/version.txt) && grep -q "## Version ${verTxt}" CHANGELOG.md && echo "##[set-output name=result;]yes" || echo "##[set-output name=result;]no"
+  #
+  #      - name: Check if extracted version matches docs/version.txt
+  #        if: ${{ steps.inside_changelog.outputs.result == 'no' }}
+  #        uses: unsplash/comment-on-pr@master
+  #        with:
+  #          msg: "`CHANGELOG.md` is missing changes for version in `docs/version.txt`!"
+  #          check_for_duplicate_msg: true
+  #        env:
+  #          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #
+  #      - name: Fail Action when versions (from above) are not the same
+  #        if: ${{ steps.version_diff.outputs.result == 'diff' }}
+  #        run: echo "Versions in pom.xml and docs/version.txt are not the same!" && exit -1
+  #
+  #      - name: Fail Action when docs/version.txt not inside CHANGELOG.md
+  #        if: ${{ steps.inside_changelog.outputs.result == 'no' }}
+  #        run: echo "CHANGELOG.md is missing changes for version in docs/version.txt!" && exit -1
+
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Disable shallow clones for static analysis (SonarCloud)
+
+      # JDKs
+      - name: Set up JDK 8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 8
+      - name: Set up JDK 11
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+
+      # Caches
+      - name: 'Cache: Maven-Repository'
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('./docs/version.txt') }}
+      - name: 'Cache: SonarCloud packages'
+        uses: actions/cache@v2
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+
+      # Maven dependencies that need to be compiled manually
+      - name: Run Spigot-BuildTools
+        run: |
+          mkdir -p .spigot-buildtools
+          cd .spigot-buildtools
+          wget https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar -O BuildTools.jar
+          test -f ${SPIGOT_M2}/1.8-R0.1-SNAPSHOT/spigot-1.8-R0.1-SNAPSHOT.jar || $JAVA_HOME_8_X64/bin/java -jar BuildTools.jar --rev 1.8
+          cd ..
+          rm -R .spigot-buildtools
+        env:
+          SPIGOT_M2: ~/.m2/repository/org/spigotmc/spigot
+
+      # Compile the project using maven
+      - name: Build with Maven
+        run: 'mvn -B -Duser.name="GitHub Runner on $GITHUB_REPOSITORY (id=$GITHUB_RUN_ID)" clean package'
+
+      # Upload the .jar files
+      - name: 'Upload Build Artifacts'
+        uses: actions/upload-artifact@v2
+        with:
+          name: LimeDevUtility-jars
+          path: |
+            ./modules/lime-api/target/LimeDevUtility-Standalone.jar
+            ./modules/spigot/lime-spigot/target/LimeDevUtility-Spigot.jar
+            ./modules/lime-bungeecord/target/LimeDevUtility-BungeeCord.jar
+
+      # Run static code analysis
+      - name: 'SonarCloud.io (static code analysis)'
+        run: 'mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

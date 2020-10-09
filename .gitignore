@@ -1,0 +1,6 @@
+*.iml
+/.idea/
+
+modules/*/target/
+modules/spigot/*/target/
+modules/spigot/nms/*/target/

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>de.sprax2013.lime</groupId>
+    <artifactId>lime</artifactId>
+    <packaging>pom</packaging>
+    <version>0.0.1-SNAPSHOT</version>
+    <!-- Run 'mvn versions:update-parent -DgenerateBackupPoms=false' to update parent-version in modules -->
+
+    <modules>
+        <module>modules/lime-api</module>
+
+        <module>modules/lime-bungeecord</module>
+
+        <module>modules/spigot/lime-spigot</module>
+        <module>modules/spigot/lime-spigot-api</module>
+        <module>modules/spigot/nms/lime-spigot-v1_8_R1</module>
+    </modules>
+
+    <properties>
+        <pluginName>LimeDevUtility</pluginName>
+
+        <maven.compiler.release>1.8</maven.compiler.release>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Used for static code analysis on https://sonarcloud.io/dashboard?id=SpraxDev_BetterChairs -->
+        <sonar.projectKey>SpraxDev_LimeDevUtility</sonar.projectKey>
+        <sonar.organization>sprax2013</sonar.organization>
+        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+        <sonar.moduleKey>${project.groupId}:${project.artifactId}</sonar.moduleKey>
+    </properties>
+
+    <distributionManagement>
+        <repository>
+            <id>GitHub-SpraxDev</id>
+            <url>https://maven.pkg.github.com/SpraxDev/LimeDevUtility</url>
+        </repository>
+    </distributionManagement>
+
+    <repositories>
+        <repository>
+            <id>spigot-repo</id>
+            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+        </repository>
+
+        <repository>
+            <id>bungeecord-repo</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+        </repository>
+
+        <repository>
+            <id>CodeMC</id>
+            <url>https://repo.codemc.org/repository/maven-public/</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+            <version>19.0.0</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
+</project>
