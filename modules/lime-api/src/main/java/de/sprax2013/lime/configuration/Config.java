@@ -753,15 +753,31 @@ public class Config {
         return result.toString();
     }
 
+    /**
+     * This method extracts and returns the base file name from a file name.<br>
+     * e.g. {@code "Test-image.png"} returns {@code "Test-image"}
+     *
+     * @param fileName The file name, the base name should be extracted from
+     *
+     * @return The base file name without an extension, or the given {@code fileName}, never null
+     */
     private static @NotNull String getFileBaseName(@NotNull String fileName) {
         int index = fileName.lastIndexOf('.');
 
         return index == -1 ? fileName : fileName.substring(0, index);
     }
 
+    /**
+     * This method extracts and returns the file extension from a file name.<br>
+     * e.g. {@code "Test-image.png"} returns {@code "png"}
+     *
+     * @param fileName The file name, the extension should be extracted from
+     *
+     * @return The file extension used or an empty string, never null
+     */
     private static @NotNull String getFileExtension(@NotNull String fileName) {
         int index = fileName.lastIndexOf('.');
 
-        return index == -1 ? fileName : fileName.substring(index + 1);
+        return index == -1 ? "" : fileName.substring(index + 1);
     }
 }
