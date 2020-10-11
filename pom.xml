@@ -13,7 +13,8 @@
     <modules>
         <module>modules/lime-api</module>
 
-        <module>modules/lime-bungeecord</module>
+        <module>modules/bungeecord/lime-bungeecord</module>
+        <module>modules/bungeecord/lime-bungeecord-api</module>
 
         <module>modules/spigot/lime-spigot</module>
         <module>modules/spigot/lime-spigot-api</module>

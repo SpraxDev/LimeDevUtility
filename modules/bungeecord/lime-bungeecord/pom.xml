@@ -8,7 +8,7 @@
         <groupId>de.sprax2013.lime</groupId>
         <artifactId>lime</artifactId>
         <version>0.0.1-SNAPSHOT</version>
-        <relativePath>../../pom.xml</relativePath>
+        <relativePath>../../../pom.xml</relativePath>
     </parent>
     <artifactId>lime-bungeecord</artifactId>
 
@@ -88,17 +88,10 @@
             <scope>provided</scope>
         </dependency>
 
-        <dependency>
-            <groupId>org.bstats</groupId>
-            <artifactId>bstats-bungeecord-lite</artifactId>
-            <version>1.7</version>
-            <scope>compile</scope>
-        </dependency>
-
         <!-- Modules -->
         <dependency>
             <groupId>de.sprax2013.lime</groupId>
-            <artifactId>lime-api</artifactId>
+            <artifactId>lime-bungeecord-api</artifactId>
             <version>${project.parent.version}</version>
             <scope>compile</scope>
         </dependency>

@@ -2,5 +2,6 @@
 /.idea/
 
 modules/*/target/
+modules/bungeecord/*/target/
 modules/spigot/*/target/
 modules/spigot/nms/*/target/
