@@ -535,9 +535,12 @@ public class Config {
         if (!this.file.exists()) throw new FileNotFoundException("File '" + this.file.getAbsolutePath() +
                 "' does not exist");
 
-        // TODO: Use "backup-" + getBaseName() + "-" + System.currMillis() + getFileExtension()
         Files.copy(this.file.toPath(), new File(this.file.getParentFile(),
-                this.file.getName() + "-" + System.currentTimeMillis() + ".backup").toPath(), StandardCopyOption.COPY_ATTRIBUTES);
+                        "backup-" +
+                                getFileBaseName(this.file.getName()) +
+                                "-" + System.currentTimeMillis() +
+                                "." + getFileExtension(this.file.getName())).toPath(),
+                StandardCopyOption.COPY_ATTRIBUTES);
     }
 
     /**
@@ -748,5 +751,17 @@ public class Config {
         }
 
         return result.toString();
+    }
+
+    private static @NotNull String getFileBaseName(@NotNull String fileName) {
+        int index = fileName.lastIndexOf('.');
+
+        return index == -1 ? fileName : fileName.substring(0, index);
+    }
+
+    private static @NotNull String getFileExtension(@NotNull String fileName) {
+        int index = fileName.lastIndexOf('.');
+
+        return index == -1 ? fileName : fileName.substring(index + 1);
     }
 }

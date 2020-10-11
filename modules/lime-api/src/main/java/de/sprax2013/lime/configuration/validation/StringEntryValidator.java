@@ -40,8 +40,7 @@ public class StringEntryValidator implements EntryValidator {
      *
      * @return The {@link StringEntryValidator} instance
      */
-    public @NotNull
-    static StringEntryValidator get() {
+    public static @NotNull StringEntryValidator get() {
         if (instance == null) {
             instance = new StringEntryValidator();
         }
