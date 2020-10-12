@@ -57,7 +57,7 @@ public class MetricsLite {
 
         try {
             Properties props = new Properties();
-            props.load(MetricsLite.class.getResourceAsStream("/info.properties"));
+            props.load(MetricsLite.class.getResourceAsStream("/LimeDevUtility.properties"));
 
             name = props.getProperty("name");
             version = props.getProperty("version");
