@@ -518,6 +518,10 @@ public class Config {
         // the file's content is not deleted
         String yamlStr = toString();
 
+        if (!this.file.getParentFile().exists()) {
+            Files.createDirectories(this.file.getParentFile().toPath());
+        }
+
         try (FileWriter writer = new FileWriter(this.file)) {
             writer.append(yamlStr);
         }
