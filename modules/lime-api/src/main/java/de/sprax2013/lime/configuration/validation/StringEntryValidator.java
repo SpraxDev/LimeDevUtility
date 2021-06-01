@@ -10,7 +10,6 @@ import org.jetbrains.annotations.Nullable;
  * @see #isValid(Object)
  * @see #get()
  */
-@SuppressWarnings("unused")
 public class StringEntryValidator implements EntryValidator {
     private static StringEntryValidator instance;
 
@@ -35,8 +34,7 @@ public class StringEntryValidator implements EntryValidator {
 
     /**
      * Because {@link #isValid(Object)} is so simple, we don't need to instantiate
-     * the identical {@link StringEntryValidator} all the time.<br>
-     * That's why you should use this method to grab an instance to use.
+     * the identical {@link StringEntryValidator} all the time.
      *
      * @return The {@link StringEntryValidator} instance
      */
