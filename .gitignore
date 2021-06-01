@@ -1,6 +1,7 @@
 *.iml
 /.idea/
 
+/target/
 modules/*/target/
 modules/bungeecord/*/target/
 modules/spigot/*/target/

@@ -1,9 +1,8 @@
-name: ${pluginName}
-#description: Plugin description for ${pluginName}
-version: ${project.parent.version}
+name: ${project.parent.name}
+description: ${project.parent.description}
+version: ${project.version}
 
 main: ${project.parent.groupId}.bungeecord.BungeeLime
 
-author: Sprax2013
-authors: [ Sprax2013 ]
-website: https://github.com/SpraxDev/LimeDevUtility
+author: SpraxDev
+website: ${project.parent.url}
