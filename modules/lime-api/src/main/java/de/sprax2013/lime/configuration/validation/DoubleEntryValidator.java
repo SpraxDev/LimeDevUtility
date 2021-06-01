@@ -1,5 +1,6 @@
 package de.sprax2013.lime.configuration.validation;
 
+import de.sprax2013.lime.configuration.validation.IntEntryValidator.MathSign;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -10,10 +11,10 @@ import org.jetbrains.annotations.Nullable;
  * @see #get(MathSign)
  */
 @SuppressWarnings("unused")
-public class IntEntryValidator implements EntryValidator {
+public class DoubleEntryValidator implements EntryValidator {
     private final MathSign mathSign;
 
-    public IntEntryValidator(@Nullable MathSign mathSign) {
+    public DoubleEntryValidator(@Nullable MathSign mathSign) {
         this.mathSign = mathSign == null ? MathSign.IGNORE : mathSign;
     }
 
@@ -29,16 +30,16 @@ public class IntEntryValidator implements EntryValidator {
     public boolean isValid(@Nullable Object value) {
         if (value == null) return false;
 
-        int parsedInt;
+        double parsedInt;
 
-        if (!(value instanceof Integer)) {
+        if (!(value instanceof Double)) {
             try {
-                parsedInt = Integer.parseInt(value.toString());
+                parsedInt = Double.parseDouble(value.toString());
             } catch (NumberFormatException ex) {
                 return false;
             }
         } else {
-            parsedInt = (int) value;
+            parsedInt = (double) value;
         }
 
         switch (this.mathSign) {
@@ -58,30 +59,26 @@ public class IntEntryValidator implements EntryValidator {
     }
 
     /**
-     * Identical to calling {@link #IntEntryValidator(MathSign)}} with {@link MathSign#IGNORE}
+     * Identical to calling {@link #DoubleEntryValidator(MathSign)}} with {@link MathSign#IGNORE}
      *
-     * @return The {@link IntEntryValidator} instance
+     * @return The {@link DoubleEntryValidator} instance
      *
      * @see #get(MathSign)
      */
-    public static @NotNull IntEntryValidator get() {
-        return new IntEntryValidator(MathSign.IGNORE);
+    public static @NotNull DoubleEntryValidator get() {
+        return new DoubleEntryValidator(MathSign.IGNORE);
     }
 
     /**
-     * Identical to {@link #IntEntryValidator(MathSign)}}
+     * Identical to {@link #DoubleEntryValidator(MathSign)}}
      *
      * @param mathSign Configure if the given number should be checked for e.g. a positive value (null is the same as {@link MathSign#IGNORE})
      *
-     * @return The {@link IntEntryValidator} instance
+     * @return The {@link DoubleEntryValidator} instance
      *
      * @see #get()
      */
-    public static @NotNull IntEntryValidator get(@Nullable MathSign mathSign) {
-        return new IntEntryValidator(mathSign);
-    }
-
-    public enum MathSign {
-        IGNORE, POSITIVE, POSITIVE_IGNORE_ZERO, NEGATIVE, NEGATIVE_IGNORE_ZERO
+    public static @NotNull DoubleEntryValidator get(@Nullable MathSign mathSign) {
+        return new DoubleEntryValidator(mathSign);
     }
 }

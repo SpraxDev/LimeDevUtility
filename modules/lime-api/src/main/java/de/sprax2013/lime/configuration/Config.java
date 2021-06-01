@@ -15,11 +15,13 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -90,7 +92,7 @@ public class Config {
      * @see #Config(File, String)
      */
     public Config(@Nullable File file, @Nullable ConfigCommentProvider commentProvider) {
-        this.file = Objects.requireNonNull(file);
+        this.file = file;
         this.commentProvider = commentProvider;
     }
 
@@ -629,7 +631,7 @@ public class Config {
                 nodeMap = (Map<String, Object>) innerNodeMap;
             }
 
-            nodeMap.put(nodeTree[nodeTree.length - 1], cfgEntry.getValue());
+            nodeMap.put(nodeTree[nodeTree.length - 1], serializeObject(cfgEntry.getValue()));
         }
 
         String yamlStr = getSnakeYaml().dump(dataRoot);
@@ -729,6 +731,75 @@ public class Config {
         }
 
         return yaml;
+    }
+
+    private static @Nullable Object serializeObject(Object obj) {
+        if (obj instanceof ConfigSerializable) {
+            return ((ConfigSerializable) obj).serializeToMap();
+        }
+
+        if (obj.getClass().isEnum()) {
+            try {
+                return obj.getClass().getMethod("name").invoke(obj);
+            } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException ex) {
+                ex.printStackTrace();
+            }
+        } else if (obj.getClass().isArray()) {
+            return Arrays.asList((Object[]) obj);
+        } else if (obj instanceof List) {
+            List<Object> newList = new ArrayList<>(((List<?>) obj).size());
+            boolean containsMap = false;
+
+            for (Object ele : (List<?>) obj) {
+                Object serializedEle = serializeObject(ele);
+
+                boolean doneSerializing = false;
+                while (!doneSerializing) {
+                    Object newEle = serializeObject(serializedEle);
+
+                    doneSerializing = Objects.equals(newEle, serializedEle);
+                    serializedEle = newEle;
+                }
+
+                if (serializedEle instanceof Map) {
+                    containsMap = true;
+                }
+
+                newList.add(serializedEle);
+            }
+
+            if (containsMap) {
+                Map<Integer, Object> newMap = new LinkedHashMap<>(newList.size());
+
+                for (int i = 0; i < newList.size(); i++) {
+                    newMap.put(i, newList.get(i));
+                }
+
+                return newMap;
+            } else {
+                return newList;
+            }
+        } else if (obj instanceof Map) {
+            Map<Object, Object> newMap = new LinkedHashMap<>(((Map<?, ?>) obj).size());
+
+            for (Map.Entry<?, ?> entry : ((Map<?, ?>) obj).entrySet()) {
+                Object serializedValue = serializeObject(entry.getValue());
+
+                boolean doneSerializing = false;
+                while (!doneSerializing) {
+                    Object newValue = serializeObject(serializedValue);
+
+                    doneSerializing = Objects.equals(newValue, serializedValue);
+                    serializedValue = newValue;
+                }
+
+                newMap.put(entry.getKey(), serializedValue);
+            }
+
+            return newMap;
+        }
+
+        return obj;
     }
 
     /**

@@ -24,9 +24,10 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Properties;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.zip.GZIPOutputStream;
 
@@ -35,9 +36,8 @@ import java.util.zip.GZIPOutputStream;
  * <p>
  * Check out https://bStats.org/ to learn more about bStats!
  * <p>
- * This class (v1.7) has been modified to work after LimeDevUtility has been shaded into other plugins
+ * This class (v1.8) has been modified to work after LimeDevUtility has been shaded into other plugins
  */
-@SuppressWarnings({"WeakerAccess", "unused"})
 public class MetricsLite {
     static {
         // You can use the property to disable the check in your test environment
@@ -46,10 +46,8 @@ public class MetricsLite {
             final String defaultPackage = new String(
                     new byte[] {'o', 'r', 'g', '.', 'b', 's', 't', 'a', 't', 's', '.', 'b', 'u', 'k', 'k', 'i', 't'});
             final String examplePackage = new String(new byte[] {'y', 'o', 'u', 'r', '.', 'p', 'a', 'c', 'k', 'a', 'g', 'e'});
-
             // We want to make sure nobody just copy & pastes the example and use the wrong package names
-            if (MetricsLite.class.getPackage().getName().equals(defaultPackage) ||
-                    MetricsLite.class.getPackage().getName().equals(examplePackage)) {
+            if (MetricsLite.class.getPackage().getName().equals(defaultPackage) || MetricsLite.class.getPackage().getName().equals(examplePackage)) {
                 throw new IllegalStateException("bStats Metrics class has not been relocated correctly!");
             }
         }
@@ -71,6 +69,10 @@ public class MetricsLite {
         pluginVersion = version;
         pluginId = Integer.parseInt(bStatsID);
     }
+
+    // Executor service for requests
+    // We use an executor service because the Bukkit scheduler is affected by server lags
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     // The version of this bStats class
     public static final int B_STATS_VERSION = 1;
@@ -104,7 +106,7 @@ public class MetricsLite {
     /**
      * Class constructor.
      *
-     * @param plugin The plugin which should submit the stats.
+     * @param plugin The plugin which stats should be submitted.
      */
     public MetricsLite(Plugin plugin) {
         if (plugin == null) {
@@ -175,6 +177,7 @@ public class MetricsLite {
      *
      * @return Whether bStats is enabled or not.
      */
+    @SuppressWarnings("unused")
     public boolean isEnabled() {
         return enabled;
     }
@@ -183,22 +186,24 @@ public class MetricsLite {
      * Starts the Scheduler which submits our data every 30 minutes.
      */
     private void startSubmitting() {
-        final Timer timer = new Timer(true); // We use a timer cause the Bukkit scheduler is affected by server lags
-        timer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                if (!plugin.isEnabled()) { // Plugin was disabled
-                    timer.cancel();
-                    return;
-                }
-                // Nevertheless we want our code to run in the Bukkit main thread, so we have to use the Bukkit scheduler
-                // Don't be afraid! The connection to the bStats server is still async, only the stats collection is sync ;)
-                Bukkit.getScheduler().runTask(plugin, () -> submitData());
+        final Runnable submitTask = () -> {
+            if (!plugin.isEnabled()) { // Plugin was disabled
+                scheduler.shutdown();
+                return;
             }
-        }, 1000 * 60 * 5, 1000 * 60 * 30);
-        // Submit the data every 30 minutes, first time after 5 minutes to give other plugins enough time to start
-        // WARNING: Changing the frequency has no effect but your plugin WILL be blocked/deleted!
-        // WARNING: Just don't do it!
+            // Nevertheless we want our code to run in the Bukkit main thread, so we have to use the Bukkit scheduler
+            // Don't be afraid! The connection to the bStats server is still async, only the stats collection is sync ;)
+            Bukkit.getScheduler().runTask(plugin, this::submitData);
+        };
+
+        // Many servers tend to restart at a fixed time at xx:00 which causes an uneven distribution of requests on the
+        // bStats backend. To circumvent this problem, we introduce some randomness into the initial and second delay.
+        // WARNING: You must not modify and part of this Metrics class, including the submit delay or frequency!
+        // WARNING: Modifying this code will get your plugin banned on bStats. Just don't do it!
+        long initialDelay = (long) (1000 * 60 * (3 + Math.random() * 3));
+        long secondDelay = (long) (1000 * 60 * (Math.random() * 30));
+        scheduler.schedule(submitTask, initialDelay, TimeUnit.MILLISECONDS);
+        scheduler.scheduleAtFixedRate(submitTask, initialDelay + secondDelay, 1000 * 60 * 30, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -207,6 +212,7 @@ public class MetricsLite {
      *
      * @return The plugin specific data.
      */
+    @SuppressWarnings("unused")
     public JsonObject getPluginData() {
         JsonObject data = new JsonObject();
 
@@ -282,7 +288,7 @@ public class MetricsLite {
                         Object plugin = provider.getService().getMethod("getPluginData").invoke(provider.getProvider());
                         if (plugin instanceof JsonObject) {
                             pluginData.add((JsonObject) plugin);
-                        } else { // old bstats version compatibility
+                        } else { // old bStats version compatibility
                             try {
                                 Class<?> jsonObjectJsonSimple = Class.forName("org.json.simple.JSONObject");
                                 if (plugin.getClass().isAssignableFrom(jsonObjectJsonSimple)) {
@@ -377,9 +383,7 @@ public class MetricsLite {
      * Gzips the given String.
      *
      * @param str The string to gzip.
-     *
      * @return The gzipped String.
-     *
      * @throws IOException If the compression failed.
      */
     private static byte[] compress(final String str) throws IOException {

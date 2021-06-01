@@ -220,6 +220,26 @@ public class ConfigEntry {
         return this.value != null;
     }
 
+    public <T extends Enum<T>> T getValueAsEnum(Class<T> enumType) {
+        Object result;
+
+        if (entryValidator == null || entryValidator.isValid(this.value)) {
+            result = this.value;
+        } else {
+            result = this.defaultValue;
+        }
+
+        if (result instanceof String) {
+            return Enum.valueOf(enumType, (String) result);
+        }
+
+        if (enumType.isInstance(result)) {
+            return enumType.cast(result);
+        }
+
+        return null;
+    }
+
     /**
      * If {@link EntryValidator} is not {@code null} and {@link EntryValidator#isValid(Object)} is {@code false},
      * the {@code defaultValue} will be used instead.<br>
@@ -289,8 +309,8 @@ public class ConfigEntry {
 
         if (result == null) return 0;
 
-        return result instanceof Integer ?
-                (int) result :
+        return result instanceof Number ?
+                ((Number) result).intValue() :
                 Integer.parseInt((String) result);
     }
 
@@ -327,8 +347,8 @@ public class ConfigEntry {
 
         if (result == null) return 0;
 
-        return result instanceof Long ?
-                (long) result :
+        return result instanceof Number ?
+                ((Number) result).longValue() :
                 Long.parseLong((String) result);
     }
 
@@ -364,8 +384,8 @@ public class ConfigEntry {
 
         if (result == null) return 0;
 
-        return result instanceof Float ?
-                (float) result :
+        return result instanceof Number ?
+                ((Number) result).floatValue() :
                 Float.parseFloat((String) result);
     }
 
@@ -401,8 +421,8 @@ public class ConfigEntry {
 
         if (result == null) return 0;
 
-        return result instanceof Double ?
-                (double) result :
+        return result instanceof Number ?
+                ((Number) result).doubleValue() :
                 Double.parseDouble((String) result);
     }
 
