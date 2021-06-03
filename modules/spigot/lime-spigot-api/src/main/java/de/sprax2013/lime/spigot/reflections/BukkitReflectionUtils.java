@@ -9,6 +9,8 @@ import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Collections;
 
+@SuppressWarnings("unused")
+@Deprecated
 public class BukkitReflectionUtils {
     private static String version;
 
@@ -17,7 +19,7 @@ public class BukkitReflectionUtils {
     }
 
     /**
-     * Example output: <code>v1_16_R2</code>
+     * Example output: <code>v1_16_R3</code>
      *
      * @return The Bukkit-Version of the server
      */
@@ -48,6 +50,7 @@ public class BukkitReflectionUtils {
      * @param players The players
      * @param packet  The packet
      *
+     * @throws ReflectiveOperationException .
      * @see #sendPacket(Player, Object)
      */
     public static void sendPacket(Collection<? extends Player> players, Object packet) throws ReflectiveOperationException {
@@ -64,6 +67,10 @@ public class BukkitReflectionUtils {
     /**
      * Sends a packet to a player using Reflections.<br>
      *
+     * @param player The player to send the packet to
+     * @param packet The packet to send
+     *
+     * @throws ReflectiveOperationException .
      * @see #sendPacket(Collection, Object)
      */
     public static void sendPacket(Player player, Object packet) throws ReflectiveOperationException {
@@ -77,6 +84,8 @@ public class BukkitReflectionUtils {
      * @param name The class name (example: net.minecraft.server.?.Packet)
      *
      * @return the NMS class
+     *
+     * @throws ClassNotFoundException .
      */
     @NotNull
     public static Class<?> getNMSClass(@NotNull String name) throws ClassNotFoundException {
@@ -109,6 +118,9 @@ public class BukkitReflectionUtils {
      * @param obj       The Object that contains the field to modify
      * @param fieldName The name of the field that should be modified
      * @param value     The Value that should be set
+     *
+     * @throws NoSuchFieldException   .
+     * @throws IllegalAccessException .
      */
     public static void setValue(Object obj, String fieldName, Object value) throws NoSuchFieldException, IllegalAccessException {
         Field field = obj.getClass().getDeclaredField(fieldName);
@@ -134,6 +146,9 @@ public class BukkitReflectionUtils {
      * @param fieldName The name of the field
      *
      * @return The value of the field
+     *
+     * @throws NoSuchFieldException   .
+     * @throws IllegalAccessException .
      */
     public static Object getValue(Object obj, String fieldName) throws NoSuchFieldException, IllegalAccessException {
         Field field = obj.getClass().getDeclaredField(fieldName);

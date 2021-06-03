@@ -2,6 +2,7 @@ package de.sprax2013.lime.configuration;
 
 import de.sprax2013.lime.LimeDevUtility;
 import de.sprax2013.lime.configuration.validation.EntryValidator;
+import de.sprax2013.lime.legacy.LegacyKeyUpgrader;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.yaml.snakeyaml.DumperOptions;
@@ -22,8 +23,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -37,14 +38,15 @@ import java.util.Objects;
  * @see #saveWithException()
  * @see #loadWithException()
  */
-@SuppressWarnings({"unused", "UnusedReturnValue"})
 public class Config {
     private static final String ERR_NO_FILE = "You have to set a file for the configuration";
 
     private static Yaml yaml;
 
+    private @Nullable ConfigVersionEntry cfgVersionEntry;  // null is equivalent to version 1 but not written to the file
+
     private final Map<@NotNull String, @NotNull ConfigEntry> entries = new LinkedHashMap<>(),
-            commentEntries = new HashMap<>();
+            commentEntries = new LinkedHashMap<>();
 
     private final List<ConfigListener> cfgListeners = new ArrayList<>();
 
@@ -167,6 +169,34 @@ public class Config {
         return null;
     }
 
+    public @Nullable ConfigVersionEntry getVersionEntry() {
+        return this.cfgVersionEntry;
+    }
+
+    public @NotNull Config withVersion(int cfgVersion) {
+        return withVersion(cfgVersion, "version");
+    }
+
+    public @NotNull Config withVersion(int cfgVersion, @NotNull String key) {
+        return withVersion(cfgVersion, key, "This version is for internal use only");
+    }
+
+    public @NotNull Config withVersion(int cfgVersion, @NotNull String key, @Nullable String comment) {
+        return withVersion(cfgVersion, 1, key, comment != null ? () -> comment : null);
+    }
+
+    public @NotNull Config withVersion(int cfgVersion, int firstVersion, @NotNull String key, @Nullable ConfigCommentProvider commentProvider) {
+        ConfigVersionEntry verEntry = new ConfigVersionEntry(key, cfgVersion, firstVersion, commentProvider);
+
+        if (getEntry(key) != null) {
+            throw new IllegalStateException("Version entry key is already being used");
+        }
+
+        this.cfgVersionEntry = verEntry;
+
+        return this;
+    }
+
     /**
      * Does the same as {@link #createEntry(String, Object)} but returning {@link Config}
      * for chaining instead of the created {@link ConfigEntry}.
@@ -265,6 +295,8 @@ public class Config {
                                             @Nullable ConfigCommentProvider commentProvider) {
         if (entries.containsKey(key)) {
             throw new IllegalArgumentException("Entry with the key '" + key + "' already exists on this config");
+        } else if (this.cfgVersionEntry != null && this.cfgVersionEntry.getKey().equals(key)) {
+            throw new IllegalArgumentException("Entry with the key '" + key + "' is already used by the version entry");
         }
 
         ConfigEntry cfgEntry = new ConfigEntry(key, defaultValue, commentProvider);
@@ -408,21 +440,51 @@ public class Config {
 
     /**
      * Calls {@link #loadWithException()} but returns a {@code boolean}
-     * and prints any errors into the console
+     * and prints any errors into the console.
+     * <br>
+     * The configuration file is upgraded automatically when a version and LegacyKeys are defined.
+     * <br>
+     * Identical to <code>load(true)</code>.
+     *
+     * @return True, if the file has been loaded successfully, false otherwise
+     *
+     * @see #loadWithException()
+     * @see #withVersion(int)
+     * @see ConfigEntry#setLegacyKey(int, String, LegacyKeyUpgrader)
+     */
+    public boolean load() {
+        return load(true);
+    }
+
+    /**
+     * Calls {@link #loadWithException()} but returns a {@code boolean}
+     * and prints any errors into the console.
+     *
+     * @param performCfgUpgrade true if the config should be upgraded automatically, false otherwise
      *
      * @return True, if the file has been loaded successfully, false otherwise
      *
      * @see #loadWithException()
      */
-    public boolean load() {
+    public boolean load(boolean performCfgUpgrade) {
         try {
-            loadWithException();
+            loadWithException(performCfgUpgrade);
             return true;
         } catch (IOException ex) {
             LimeDevUtility.LOGGER.throwing(this.getClass().getName(), "load", ex);
         }
 
         return false;
+    }
+
+    /**
+     * Identical to <code>loadWithException(true)</code>.
+     *
+     * @throws IOException If {@link #getFile()} {@code == null} or thrown by {@link FileReader}
+     * @see #loadWithException(boolean)
+     */
+    public void loadWithException() throws IOException {
+        loadWithException(true);
     }
 
     /**
@@ -434,10 +496,12 @@ public class Config {
      * <p>
      * If everything succeeds, all the {@link ConfigListener#onLoad()}s are called
      *
+     * @param performCfgUpgrade true if the config should be upgraded automatically, false otherwise
+     *
      * @throws IOException If {@link #getFile()} {@code == null} or thrown by {@link FileReader}
      * @see ConfigListener
      */
-    public void loadWithException() throws IOException {
+    public void loadWithException(boolean performCfgUpgrade) throws IOException {
         if (this.file == null) throw new FileNotFoundException(ERR_NO_FILE);
 
         reset();
@@ -447,39 +511,86 @@ public class Config {
                 Object yamlData = getSnakeYaml().load(reader);
 
                 if (!(yamlData instanceof Map)) {
-                    throw new IllegalStateException("The YAML file does not have a classical tree structure");
+                    throw new IllegalStateException("The YAML file does not have the expected tree structure");
+                }
+
+                // Load version from file
+                if (this.cfgVersionEntry != null) {
+                    Object value = retrieveValueFromMapStructure((Map<?, ?>) yamlData, this.cfgVersionEntry.getKey());
+
+                    if (value != null) {
+                        EntryValidator validator = this.cfgVersionEntry.getEntryValidator();
+
+                        if (validator != null && !validator.isValid(value)) {
+                            LimeDevUtility.LOGGER.warning(() -> "Invalid value(=" + value +
+                                    ") inside " + this.file.getName() + " for '" + this.cfgVersionEntry.getKey() +
+                                    "' (default value: '" + this.cfgVersionEntry.getDefaultValue() + "')");
+                        }
+
+                        this.cfgVersionEntry.setValue(value);
+                    }
+                }
+
+                // Upgrade existing config if required
+                if (performCfgUpgrade && this.cfgVersionEntry != null) {
+                    boolean createdBackup = false;
+
+                    while (this.cfgVersionEntry.requiresUpgrade()) {
+                        for (ConfigEntry entry : entries.values()) {
+                            LegacyConfigKey legacyKey = entry.getLegacyKey(this.cfgVersionEntry.getCurrentVersion());
+
+                            if (legacyKey != null) { // Legacy information available
+                                Object legacyValue = retrieveValueFromMapStructure((Map<?, ?>) yamlData,
+                                        legacyKey.getKey() != null ? legacyKey.getKey() : entry.getKey());
+
+                                if (legacyKey.getKey() == null) {
+                                    // Using the upgrader as the key didn't change
+                                    if (legacyKey.getKeyUpgrader() != null) {
+                                        if (!createdBackup) {
+                                            backupFile();
+                                            createdBackup = true;
+                                        }
+
+                                        entry.setValue(legacyKey.getKeyUpgrader().accept(legacyValue));
+                                    }
+                                } else if (legacyValue != null && retrieveValueFromMapStructure((Map<?, ?>) yamlData, entry.getKey()) == null) {
+                                    // Legacy value could be retrieved and current key does not already exist
+                                    if (legacyKey.getKeyUpgrader() != null) {
+                                        if (!createdBackup) {
+                                            backupFile();
+                                            createdBackup = true;
+                                        }
+
+                                        entry.setValue(legacyKey.getKeyUpgrader().accept(legacyValue));
+                                    } else {
+                                        if (!createdBackup) {
+                                            backupFile();
+                                            createdBackup = true;
+                                        }
+
+                                        entry.setValue(legacyValue);
+                                    }
+                                }
+                            }
+                        }
+
+                        this.cfgVersionEntry.incrementVersion();
+                    }
                 }
 
                 for (ConfigEntry cfgEntry : entries.values()) {
-                    String[] nodeTree = cfgEntry.getKey().split("\\.");
+                    Object value = retrieveValueFromMapStructure((Map<?, ?>) yamlData, cfgEntry.getKey());
 
-                    Object obj = yamlData;
+                    if (value != null) {
+                        EntryValidator validator = cfgEntry.getEntryValidator();
 
-                    for (int i = 0; i < nodeTree.length - 1; ++i) {
-                        String node = nodeTree[i];
-
-                        obj = ((Map<?, ?>) obj).get(node);
-
-                        if (!(obj instanceof Map)) {
-                            obj = null;
-                            break;
+                        if (validator != null && !validator.isValid(value)) {
+                            LimeDevUtility.LOGGER.warning(() -> "Invalid value(=" + value +
+                                    ") inside " + this.file.getName() + " for '" + cfgEntry.getKey() +
+                                    "' (default value: '" + cfgEntry.getDefaultValue() + "')");
                         }
-                    }
 
-                    if (obj != null) {
-                        Object value = ((Map<?, ?>) obj).get(nodeTree[nodeTree.length - 1]);
-
-                        if (value != null) {
-                            EntryValidator validator = cfgEntry.getEntryValidator();
-
-                            if (validator != null && !validator.isValid(value)) {
-                                LimeDevUtility.LOGGER.warning(() -> "Invalid value(=" + value +
-                                        ") inside " + this.file.getName() + " for '" + cfgEntry.getKey() +
-                                        "' (default value: '" + cfgEntry.getDefaultValue() + "')");
-                            }
-
-                            cfgEntry.setValue(value);
-                        }
+                        cfgEntry.setValue(value);
                     }
                 }
             }
@@ -606,7 +717,12 @@ public class Config {
         /* Construct a Node-Tree to generate the YAML from */
         Map<String, Object> dataRoot = new LinkedHashMap<>();
 
-        for (ConfigEntry cfgEntry : entries.values()) {
+        List<ConfigEntry> cfgEntries = new LinkedList<>(this.entries.values());
+        if (this.cfgVersionEntry != null) {
+            cfgEntries.add(0, this.cfgVersionEntry);
+        }
+
+        for (ConfigEntry cfgEntry : cfgEntries) {
             if (cfgEntry.getValue() == null) continue;
 
             String[] nodeTree = cfgEntry.getKey().split("\\.");
@@ -639,8 +755,8 @@ public class Config {
         /* Fill the generated yamlStr with comments */
 
         // Inject node comments into yamlStr
-        List<ConfigEntry> entryList = new ArrayList<>(entries.size() + commentEntries.size());
-        entryList.addAll(entries.values());
+        List<ConfigEntry> entryList = new LinkedList<>();
+        entryList.addAll(cfgEntries);
         entryList.addAll(commentEntries.values());
 
         for (ConfigEntry cfgEntry : entryList) {
@@ -678,6 +794,29 @@ public class Config {
         }
 
         return yamlStr;
+    }
+
+    private Object retrieveValueFromMapStructure(@NotNull Map<?, ?> yamlData, @NotNull String key) {
+        String[] nodeTree = key.split("\\.");
+
+        Object obj = yamlData;
+
+        for (int i = 0; i < nodeTree.length - 1; ++i) {
+            String node = nodeTree[i];
+
+            obj = ((Map<?, ?>) obj).get(node);
+
+            if (!(obj instanceof Map)) {
+                obj = null;
+                break;
+            }
+        }
+
+        if (obj != null) {
+            return ((Map<?, ?>) obj).get(nodeTree[nodeTree.length - 1]);
+        }
+
+        return null;
     }
 
     /**

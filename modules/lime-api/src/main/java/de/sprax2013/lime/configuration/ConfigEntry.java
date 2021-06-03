@@ -1,11 +1,14 @@
 package de.sprax2013.lime.configuration;
 
 import de.sprax2013.lime.configuration.validation.EntryValidator;
+import de.sprax2013.lime.legacy.LegacyKeyUpgrader;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -25,6 +28,7 @@ public class ConfigEntry {
 
     private @Nullable EntryValidator entryValidator;
     private @Nullable ConfigCommentProvider commentProvider;
+    private @Nullable Map<Integer, LegacyConfigKey> legacyKeys;
 
     private Object value;
 
@@ -152,6 +156,24 @@ public class ConfigEntry {
         }
 
         return null;
+    }
+
+    public @NotNull ConfigEntry setLegacyKey(int cfgVersion, @Nullable String legacyKey) {
+        return setLegacyKey(cfgVersion, legacyKey, null);
+    }
+
+    public @NotNull ConfigEntry setLegacyKey(int cfgVersion, @Nullable String legacyKey, @Nullable LegacyKeyUpgrader keyUpgrader) {
+        if (this.legacyKeys == null) {
+            this.legacyKeys = new HashMap<>(1, 1);
+        }
+
+        this.legacyKeys.put(cfgVersion, new LegacyConfigKey(legacyKey, keyUpgrader));
+
+        return this;
+    }
+
+    public @Nullable LegacyConfigKey getLegacyKey(int cfgVersionAtThatTime) {
+        return this.legacyKeys != null ? this.legacyKeys.get(cfgVersionAtThatTime) : null;
     }
 
     /**
