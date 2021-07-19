@@ -32,15 +32,9 @@ public class BukkitReflectionUtils {
         return version;
     }
 
-    public static int getPlayerPing(@NotNull Player p) {
-        try {
-            Object entityPlayer = p.getClass().getMethod("getHandle").invoke(p);
-            return (int) entityPlayer.getClass().getField("ping").get(entityPlayer);
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-
-        return -1;
+    public static int getPlayerPing(@NotNull Player p) throws ReflectiveOperationException {
+        Object entityPlayer = p.getClass().getMethod("getHandle").invoke(p);
+        return (int) entityPlayer.getClass().getField("ping").get(entityPlayer);
     }
 
     /**
@@ -103,9 +97,8 @@ public class BukkitReflectionUtils {
     @Nullable
     public static Class<?> getNMSClassNullable(@NotNull String name) {
         try {
-            return Class.forName(name.replace("?", getBukkitVersion()));
-        } catch (ClassNotFoundException ex) {
-            ex.printStackTrace();
+            return getNMSClass(name);
+        } catch (ClassNotFoundException ignore) {
         }
 
         return null;

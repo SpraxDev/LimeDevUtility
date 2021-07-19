@@ -18,6 +18,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This class calls the custom events.
@@ -186,7 +188,15 @@ abstract class ConnectionObserver extends ObservedRunnable {
         }
 
         int lastPing = this.ping;
-        this.ping = BukkitReflectionUtils.getPlayerPing(this.player);
+        try {
+            this.ping = BukkitReflectionUtils.getPlayerPing(this.player);
+        } catch (ReflectiveOperationException ex) {
+            this.equalPings = 0;
+            this.ping = 0;
+
+            Logger.getGlobal().log(Level.FINER, "Could not check retrieve ping", ex);
+            return;
+        }
 
         if (lastPing == this.ping) {
             equalPings++;

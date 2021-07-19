@@ -16,7 +16,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -878,11 +877,7 @@ public class Config {
         }
 
         if (obj.getClass().isEnum()) {
-            try {
-                return obj.getClass().getMethod("name").invoke(obj);
-            } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException ex) {
-                ex.printStackTrace();
-            }
+            return ((Enum<?>) obj).name();
         } else if (obj.getClass().isArray()) {
             return Arrays.asList((Object[]) obj);
         } else if (obj instanceof List) {
