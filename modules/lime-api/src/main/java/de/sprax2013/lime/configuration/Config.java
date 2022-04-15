@@ -2,7 +2,7 @@ package de.sprax2013.lime.configuration;
 
 import de.sprax2013.lime.LimeDevUtility;
 import de.sprax2013.lime.configuration.validation.EntryValidator;
-import de.sprax2013.lime.legacy.LegacyKeyUpgrader;
+import de.sprax2013.lime.configuration.legacy.LegacyKeyUpgrader;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.yaml.snakeyaml.DumperOptions;
@@ -58,7 +58,7 @@ public class Config {
      * @see #Config(File, ConfigCommentProvider)
      */
     public Config() {
-        this(null);
+        this((File) null);
     }
 
     /**
@@ -95,6 +95,48 @@ public class Config {
     public Config(@Nullable File file, @Nullable ConfigCommentProvider commentProvider) {
         this.file = file;
         this.commentProvider = commentProvider;
+    }
+
+    /**
+     * Copied the config structure (similar to deep-clone) from an existing one ({@link ConfigListener}s are not copied over).
+     *
+     * <b>What might still be a reference?</b>
+     * <ul>
+     *     <li>{@link ConfigEntry#getDefaultValue()}</li>
+     *     <li>{@link ConfigEntry#getValue()}</li>
+     *     <li>{@link ConfigCommentProvider}s</li>
+     *     <li>{@link EntryValidator}s</li>
+     * </ul>
+     *
+     * @param baseCfg The config to copy from
+     */
+    public Config(@NotNull Config baseCfg) {
+        this(baseCfg.file, baseCfg.commentProvider);
+
+        if (baseCfg.cfgVersionEntry != null) {
+            Object firstVersion = baseCfg.cfgVersionEntry.getDefaultValue();
+
+            if (firstVersion instanceof Number) {
+                withVersion(baseCfg.cfgVersionEntry.getTargetVersion(), (int) firstVersion, baseCfg.cfgVersionEntry.getKey(), baseCfg.getCommentProvider());
+            } else {
+                withVersion(baseCfg.cfgVersionEntry.getTargetVersion(), baseCfg.cfgVersionEntry.getKey(), baseCfg.getCommentProvider());
+            }
+        }
+
+        for (ConfigEntry entry : baseCfg.entries.values()) {
+            withEntry(entry.getKey(), entry.getDefaultValue(), entry.getCommentProvider());
+        }
+
+        for (ConfigEntry entry : baseCfg.commentEntries.values()) {
+            ConfigCommentProvider commentP = entry.getCommentProvider();
+
+            // Should not be possible but let's make sure
+            if (commentP == null) {
+                commentP = () -> "";
+            }
+
+            withCommentEntry(entry.getKey(), commentP);
+        }
     }
 
     /**
@@ -181,7 +223,11 @@ public class Config {
     }
 
     public @NotNull Config withVersion(int cfgVersion, @NotNull String key, @Nullable String comment) {
-        return withVersion(cfgVersion, 1, key, comment != null ? () -> comment : null);
+        return withVersion(cfgVersion, key, comment != null ? () -> comment : null);
+    }
+
+    public @NotNull Config withVersion(int cfgVersion, @NotNull String key, @Nullable ConfigCommentProvider commentProvider) {
+        return withVersion(cfgVersion, 1, key, commentProvider);
     }
 
     public @NotNull Config withVersion(int cfgVersion, int firstVersion, @NotNull String key, @Nullable ConfigCommentProvider commentProvider) {

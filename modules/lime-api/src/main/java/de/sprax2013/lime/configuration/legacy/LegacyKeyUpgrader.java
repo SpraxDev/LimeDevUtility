@@ -1,4 +1,4 @@
-package de.sprax2013.lime.legacy;
+package de.sprax2013.lime.configuration.legacy;
 
 import org.jetbrains.annotations.Nullable;
 

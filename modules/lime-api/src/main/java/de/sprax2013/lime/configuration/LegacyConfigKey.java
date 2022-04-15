@@ -1,6 +1,6 @@
 package de.sprax2013.lime.configuration;
 
-import de.sprax2013.lime.legacy.LegacyKeyUpgrader;
+import de.sprax2013.lime.configuration.legacy.LegacyKeyUpgrader;
 import org.jetbrains.annotations.Nullable;
 
 public class LegacyConfigKey {
