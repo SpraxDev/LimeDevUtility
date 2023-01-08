@@ -1,8 +1,8 @@
 package de.sprax2013.lime.configuration;
 
 import de.sprax2013.lime.LimeDevUtility;
-import de.sprax2013.lime.configuration.validation.EntryValidator;
 import de.sprax2013.lime.configuration.legacy.LegacyKeyUpgrader;
+import de.sprax2013.lime.configuration.validation.EntryValidator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.yaml.snakeyaml.DumperOptions;
@@ -13,9 +13,10 @@ import org.yaml.snakeyaml.representer.Representer;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,7 +31,7 @@ import java.util.Objects;
 
 /**
  * This class provides an easy way to create YAML files with and high abstraction layer.<br>
- * A {@link Config} consists of {@link ConfigEntry}s with an unique identifier (=key).
+ * A {@link Config} consists of {@link ConfigEntry}s with a unique identifier (=key).
  * <p>
  * The special thing about this class is, that you can have comments on *all* nodes (although that's against the spec)
  *
@@ -525,7 +526,7 @@ public class Config {
     /**
      * Identical to <code>loadWithException(true)</code>.
      *
-     * @throws IOException If {@link #getFile()} {@code == null} or thrown by {@link FileReader}
+     * @throws IOException If {@link #getFile()} {@code == null} or thrown by the {@link java.io.Reader}
      * @see #loadWithException(boolean)
      */
     public void loadWithException() throws IOException {
@@ -542,8 +543,7 @@ public class Config {
      * If everything succeeds, all the {@link ConfigListener#onLoad()}s are called
      *
      * @param performCfgUpgrade true if the config should be upgraded automatically, false otherwise
-     *
-     * @throws IOException If {@link #getFile()} {@code == null} or thrown by {@link FileReader}
+     * @throws IOException If {@link #getFile()} {@code == null} or thrown by the {@link java.io.Reader}
      * @see ConfigListener
      */
     public void loadWithException(boolean performCfgUpgrade) throws IOException {
@@ -552,7 +552,7 @@ public class Config {
         reset();
 
         if (file.exists()) {
-            try (FileReader reader = new FileReader(file)) {
+            try (Reader reader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8)) {
                 Object yamlData = getSnakeYaml().load(reader);
 
                 if (!(yamlData instanceof Map)) {
@@ -667,7 +667,7 @@ public class Config {
      * Calls {@link #toString()} and writes it into the file at {@link #getFile()}
      *
      * @throws FileNotFoundException If {@link #getFile()} {@code == null}
-     * @throws IOException           Thrown by {@link FileWriter#append(CharSequence)}
+     * @throws IOException           Thrown by {@link Writer#append(CharSequence)}
      */
     public void saveWithException() throws IOException {
         if (this.file == null) throw new FileNotFoundException(ERR_NO_FILE);
@@ -680,7 +680,7 @@ public class Config {
             Files.createDirectories(this.file.getParentFile().toPath());
         }
 
-        try (FileWriter writer = new FileWriter(this.file)) {
+        try (Writer writer = Files.newBufferedWriter(file.toPath(), StandardCharsets.UTF_8)) {
             writer.append(yamlStr);
         }
     }
