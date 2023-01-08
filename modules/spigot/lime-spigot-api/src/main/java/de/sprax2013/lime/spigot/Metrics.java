@@ -84,7 +84,7 @@ public class Metrics {
             limeVersionStr = props.getProperty("version");
             bStatsIDStr = props.getProperty("bStatsId_Spigot", "");
         } catch (Exception ex) {
-            LimeDevUtility.LOGGER.log(Level.FINER, "Error parsing LimeDevUtility.properties", ex);
+            LimeDevUtility.LOGGER.log(Level.SEVERE, "Error parsing LimeDevUtility.properties", ex);
         }
 
         this.limeVersion = limeVersionStr;

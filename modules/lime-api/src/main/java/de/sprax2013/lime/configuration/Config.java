@@ -28,6 +28,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.logging.Level;
 
 /**
  * This class provides an easy way to create YAML files with and high abstraction layer.<br>
@@ -518,6 +519,7 @@ public class Config {
             return true;
         } catch (IOException ex) {
             LimeDevUtility.LOGGER.throwing(this.getClass().getName(), "load", ex);
+            LimeDevUtility.LOGGER.log(Level.SEVERE, "Failed to load config file" + (file != null ? (" '" + file.getName() + "'") : ""), ex);
         }
 
         return false;
@@ -658,6 +660,7 @@ public class Config {
             return true;
         } catch (IOException ex) {
             LimeDevUtility.LOGGER.throwing(this.getClass().getName(), "save", ex);
+            LimeDevUtility.LOGGER.log(Level.SEVERE, "Failed to save config file" + (file != null ? (" '" + file.getName() + "'") : ""), ex);
         }
 
         return false;
