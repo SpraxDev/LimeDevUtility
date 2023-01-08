@@ -7,7 +7,7 @@
     <groupId>de.sprax2013.lime</groupId>
     <artifactId>lime</artifactId>
     <packaging>pom</packaging>
-    <version>0.0.2-SNAPSHOT</version>
+    <version>0.0.3-SNAPSHOT</version>
     <!-- Run 'mvn versions:set -DgenerateBackupPoms=false -DnewVersion=X.Y.Z-DEV' to update version recursively -->
 
     <modules>
