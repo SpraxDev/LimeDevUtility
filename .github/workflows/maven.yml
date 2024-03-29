@@ -12,8 +12,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0  # Disable shallow clones for static analysis (SonarCloud)
 
       # Caches
       - name: 'Cache: Maven-Repository'
@@ -21,11 +19,6 @@ jobs:
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('./docs/version.txt') }}
-      - name: 'Cache: SonarCloud packages'
-        uses: actions/cache@v2
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
 
       # Maven dependencies that need to be compiled manually
       - uses: actions/setup-java@v4
@@ -55,10 +48,3 @@ jobs:
             ./modules/lime-api/target/LimeDevUtility-Standalone.jar
             ./modules/spigot/lime-spigot/target/LimeDevUtility-Spigot.jar
             ./modules/lime-bungeecord/target/LimeDevUtility-BungeeCord.jar
-
-      # Run static code analysis
-      - name: 'SonarCloud.io (static code analysis)'
-        run: 'mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
