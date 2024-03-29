@@ -45,13 +45,6 @@
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <minimizeJar>true</minimizeJar>
 
-                            <relocations>
-                                <relocation>
-                                    <pattern>nms</pattern>
-                                    <shadedPattern>de.sprax2013.lime.spigot.nms</shadedPattern>
-                                </relocation>
-                            </relocations>
-
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>
@@ -112,13 +105,6 @@
         <dependency>
             <groupId>de.sprax2013.lime</groupId>
             <artifactId>lime-spigot-api</artifactId>
-            <version>${project.version}</version>
-            <scope>compile</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>de.sprax2013.lime</groupId>
-            <artifactId>lime-spigot-v1_8_R1</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
