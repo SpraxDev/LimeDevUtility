@@ -48,7 +48,7 @@ jobs:
 
       # Upload the .jar files
       - name: 'Upload Build Artifacts'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: LimeDevUtility-jars
           path: |
