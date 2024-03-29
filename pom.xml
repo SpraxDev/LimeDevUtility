@@ -18,7 +18,6 @@
 
         <module>modules/spigot/lime-spigot</module>
         <module>modules/spigot/lime-spigot-api</module>
-        <module>modules/spigot/nms/lime-spigot-v1_8_R1</module>
     </modules>
 
     <name>LimeDevUtility</name>
