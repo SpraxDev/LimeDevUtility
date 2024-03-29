@@ -1,6 +1,7 @@
 package de.sprax2013.lime.spigot;
 
 import de.sprax2013.lime.LimeDevUtility;
+import de.sprax2013.lime.spigot.nms.NmsVersionDetector;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -105,7 +106,7 @@ public class Metrics {
                 logResponseStatusText);
 
         // Custom chart: NMS Version
-        String nmsVersion = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
+        String nmsVersion = NmsVersionDetector.detect().orElse(Bukkit.getServer().getBukkitVersion());
         metricsBase.addCustomChart(new Metrics.SimplePie("nms_version", () -> nmsVersion));
     }
 
