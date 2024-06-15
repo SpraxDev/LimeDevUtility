@@ -17,6 +17,8 @@ public class NmsVersionDetector {
         VERSION_TO_REVISION.put("1.20.3", "v1_20_R3");
         VERSION_TO_REVISION.put("1.20.4", "v1_20_R3");
         VERSION_TO_REVISION.put("1.20.5", "v1_20_R4");
+        VERSION_TO_REVISION.put("1.20.6", "v1_20_R4");
+        VERSION_TO_REVISION.put("1.21", "v1_21_R1");
     }
 
     public static Optional<String> detect() {
